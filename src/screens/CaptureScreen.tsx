@@ -13,18 +13,20 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { saveThought } from '../utils/storage';
 import { RootStackParamList } from '../navigation/types';
+import { useTheme } from '../context/ThemeContext';
+
+const TAGS = ['idea', 'task', 'worry', 'note', 'random'];
 
 type CaptureScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Capture'
 >;
 
-const TAGS = ['idea', 'task', 'worry', 'note', 'random'];
-
 export default function CaptureScreen() {
   const [thought, setThought] = useState('');
   const [selectedTag, setSelectedTag] = useState('idea');
   const navigation = useNavigation<CaptureScreenNavigationProp>();
+  const { themeColors } = useTheme();
 
   const handleSave = async () => {
     if (!thought.trim()) return;
@@ -35,34 +37,37 @@ export default function CaptureScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>MindSweep</Text>
+      <Text style={[styles.title, { color: themeColors.text }]}>MindSweep</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: themeColors.card, color: themeColors.text, borderColor: themeColors.border }]}
         placeholder="What's on your mind?"
+        placeholderTextColor={themeColors.placeholder}
         value={thought}
         onChangeText={setThought}
         multiline
       />
 
-      <Text style={styles.subheading}>Select Tag:</Text>
+      <Text style={[styles.subheading, { color: themeColors.text }]}>Select Tag:</Text>
       <View style={styles.tagContainer}>
         {TAGS.map((tag) => (
           <TouchableOpacity
             key={tag}
             style={[
               styles.tagButton,
-              selectedTag === tag && styles.tagSelected,
+              { backgroundColor: selectedTag === tag ? '#4e91fc' : themeColors.card },
             ]}
             onPress={() => setSelectedTag(tag)}
           >
             <Text
               style={[
                 styles.tagText,
-                selectedTag === tag && styles.tagTextSelected,
+                {
+                  color: selectedTag === tag ? '#fff' : themeColors.text,
+                },
               ]}
             >
               {tag}
@@ -95,13 +100,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
     padding: 15,
     minHeight: 100,
     marginBottom: 20,
-    backgroundColor: '#fff',
   },
   subheading: {
     fontSize: 16,
@@ -114,20 +117,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tagButton: {
-    backgroundColor: '#eee',
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 20,
     margin: 4,
   },
-  tagSelected: {
-    backgroundColor: '#4e91fc',
-  },
   tagText: {
-    color: '#333',
-  },
-  tagTextSelected: {
-    color: '#fff',
+    fontSize: 14,
   },
   buttonContainer: {
     marginVertical: 5,

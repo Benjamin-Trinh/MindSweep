@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,14 @@ import {
   ScrollView,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { useNavigation } from '@react-navigation/native';
 import { loadThoughts, removeThought } from '../utils/storage';
+import { useTheme } from '../context/ThemeContext';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+import { Ionicons } from '@expo/vector-icons';
+
+const TAGS = ['all', 'idea', 'task', 'worry', 'note', 'random'];
 
 type Thought = {
   id: number;
@@ -18,11 +25,29 @@ type Thought = {
   tag: string;
 };
 
-const TAGS = ['all', 'idea', 'task', 'worry', 'note', 'random'];
-
 export default function InboxScreen() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [selectedTag, setSelectedTag] = useState('all');
+
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { current, themeColors } = useTheme();
+  const isDark = current === 'dark';
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerStyle: {
+        backgroundColor: themeColors.background,
+      },
+      headerTitleStyle: {
+        color: themeColors.text,
+      },
+      headerRight: () => (
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
+          <Ionicons name="settings-outline" size={24} color={themeColors.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, themeColors]);
 
   const fetchThoughts = async () => {
     const saved = await loadThoughts();
@@ -51,9 +76,8 @@ export default function InboxScreen() {
     const textDump = thoughts
       .map(
         (t) =>
-          `[${
-            t.tag.toUpperCase()
-          }] ${new Date(t.createdAt).toLocaleString()}\n${t.content}\n`
+          `[${t.tag.toUpperCase()}] ${new Date(t.createdAt).toLocaleString()}
+${t.content}\n`
       )
       .join('\n');
 
@@ -67,10 +91,10 @@ export default function InboxScreen() {
       : thoughts.filter((t) => t.tag === selectedTag);
 
   const renderItem = ({ item }: { item: Thought }) => (
-    <View style={styles.thoughtCard}>
-      <Text style={styles.tagLabel}>{item.tag.toUpperCase()}</Text>
-      <Text style={styles.thoughtText}>{item.content}</Text>
-      <Text style={styles.timestamp}>
+    <View style={[styles.thoughtCard, { backgroundColor: themeColors.card }]}>
+      <Text style={[styles.tagLabel, { color: themeColors.text }]}>{item.tag.toUpperCase()}</Text>
+      <Text style={[styles.thoughtText, { color: themeColors.text }]}>{item.content}</Text>
+      <Text style={[styles.timestamp, { color: themeColors.text }]}> 
         {new Date(item.createdAt).toLocaleString()}
       </Text>
       <TouchableOpacity onPress={() => confirmDelete(item.id)}>
@@ -80,47 +104,52 @@ export default function InboxScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Inbox</Text>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <Text style={[styles.title, { color: themeColors.text }]}>Inbox</Text>
 
-      {/* Export + Filter Section */}
-      <View>
-        <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-          <Text style={styles.exportText}>Export to Clipboard</Text>
-        </TouchableOpacity>
+      <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
+        <Text style={styles.exportText}>Export to Clipboard</Text>
+      </TouchableOpacity>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tagFilterContainer}
+<View style={{ marginBottom: 16 }}>
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.tagFilterContainer}
+  >
+    {TAGS.map((tag) => {
+      const isSelected = selectedTag === tag;
+      return (
+        <TouchableOpacity
+          key={tag}
+          style={[
+            styles.tagButton,
+            { backgroundColor: isSelected ? themeColors.highlight : themeColors.tag },
+          ]}
+          onPress={() => setSelectedTag(tag)}
         >
-          {TAGS.map((tag) => {
-            const isSelected = selectedTag === tag;
-            return (
-              <TouchableOpacity
-                key={tag}
-                style={[styles.tagButton, isSelected && styles.tagSelected]}
-                onPress={() => setSelectedTag(tag)}
-              >
-                <Text
-                  style={[styles.tagText, isSelected && styles.tagTextSelected]}
-                >
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+          <Text
+            style={[
+              styles.tagText,
+              { color: isSelected ? '#fff' : themeColors.tagText },
+            ]}
+          >
+            {tag}
+          </Text>
+        </TouchableOpacity>
+      );
+    })}
+  </ScrollView>
+</View>
 
-      {/* Thought List */}
+
       <FlatList
         data={filteredThoughts}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No thoughts for this tag.</Text>
+          <Text style={[styles.emptyText, { color: themeColors.text }]}>No thoughts for this tag.</Text>
         }
       />
     </View>
@@ -136,7 +165,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
     textAlign: 'center',
   },
   exportButton: {
@@ -155,32 +184,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingBottom: 10,
-    height: 48, // Fixes layout jump
+    height: 48,
   },
   tagButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#e6e6e6',
     borderRadius: 20,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 70, // Forces consistent button size
-  },
-  tagSelected: {
-    backgroundColor: '#4e91fc',
+    minWidth: 70,
   },
   tagText: {
     fontSize: 14,
-    color: '#333',
     textTransform: 'capitalize',
     fontWeight: '500',
   },
-  tagTextSelected: {
-    color: '#fff',
-  },
   thoughtCard: {
-    backgroundColor: '#f2f2f2',
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
@@ -191,7 +211,6 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#777',
     marginBottom: 6,
   },
   deleteText: {
@@ -202,13 +221,11 @@ const styles = StyleSheet.create({
   tagLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#555',
     marginBottom: 4,
   },
   emptyText: {
     textAlign: 'center',
     marginTop: 40,
     fontSize: 16,
-    color: '#999',
   },
 });
