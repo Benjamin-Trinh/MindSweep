@@ -12,6 +12,7 @@ import { loadThoughts, removeThought } from '../utils/storage';
 type Thought = {
   id: number;
   content: string;
+  createdAt: string;
 };
 
 export default function InboxScreen() {
@@ -45,6 +46,9 @@ export default function InboxScreen() {
   const renderItem = ({ item }: { item: Thought }) => (
     <View style={styles.thoughtCard}>
       <Text style={styles.thoughtText}>{item.content}</Text>
+      <Text style ={styles.timestamp}>
+        {new Date(item.createdAt).toLocaleString()}
+      </Text>
       <TouchableOpacity onPress={() => confirmDelete(item.id)}>
         <Text style={styles.deleteText}>Delete</Text>
       </TouchableOpacity>
@@ -91,5 +95,10 @@ const styles = StyleSheet.create({
     color: 'red',
     fontWeight: 'bold',
     textAlign: 'right',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 4,
   },
 });

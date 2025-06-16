@@ -6,7 +6,12 @@ export async function saveThought(thought: string) {
   try {
     const existing = await AsyncStorage.getItem(STORAGE_KEY);
     const thoughts = existing ? JSON.parse(existing) : [];
-    thoughts.unshift({ id: Date.now(), content: thought }); // newest first
+    const newThought = {
+      id: Date.now(),
+      content: thought,
+      createdAt: new Date().toISOString(),
+    };
+    thoughts.unshift(newThought); // newest first
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
   } catch (error) {
     console.error('Error saving thought:', error);
