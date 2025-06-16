@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { loadThoughts, removeThought } from '../utils/storage';
 
 type Thought = {
@@ -44,6 +45,22 @@ export default function InboxScreen() {
     ]);
   };
 
+  const handleExport = async () => {
+    if (thoughts.length === 0) return;
+
+    const textDump = thoughts
+      .map(
+        (t) =>
+          `[${
+            t.tag.toUpperCase()
+          }] ${new Date(t.createdAt).toLocaleString()}\n${t.content}\n`
+      )
+      .join('\n');
+
+    await Clipboard.setStringAsync(textDump);
+    Alert.alert('Copied!', 'Thoughts exported to clipboard.');
+  };
+
   const filteredThoughts =
     selectedTag === 'all'
       ? thoughts
@@ -66,33 +83,45 @@ export default function InboxScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Inbox</Text>
 
-      <ScrollView horizontal contentContainerStyle={styles.tagFilterContainer}>
-        {TAGS.map((tag) => (
-          <TouchableOpacity
-            key={tag}
-            style={[
-              styles.tagButton,
-              selectedTag === tag && styles.tagSelected,
-            ]}
-            onPress={() => setSelectedTag(tag)}
-          >
-            <Text
-              style={[
-                styles.tagText,
-                selectedTag === tag && styles.tagTextSelected,
-              ]}
-            >
-              {tag}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Export + Filter Section */}
+      <View>
+        <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
+          <Text style={styles.exportText}>Export to Clipboard</Text>
+        </TouchableOpacity>
 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tagFilterContainer}
+        >
+          {TAGS.map((tag) => {
+            const isSelected = selectedTag === tag;
+            return (
+              <TouchableOpacity
+                key={tag}
+                style={[styles.tagButton, isSelected && styles.tagSelected]}
+                onPress={() => setSelectedTag(tag)}
+              >
+                <Text
+                  style={[styles.tagText, isSelected && styles.tagTextSelected]}
+                >
+                  {tag}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Thought List */}
       <FlatList
         data={filteredThoughts}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No thoughts for this tag.</Text>
+        }
       />
     </View>
   );
@@ -107,8 +136,48 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: 'center',
+  },
+  exportButton: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#4e91fc',
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  exportText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  tagFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    height: 48, // Fixes layout jump
+  },
+  tagButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#e6e6e6',
+    borderRadius: 20,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70, // Forces consistent button size
+  },
+  tagSelected: {
+    backgroundColor: '#4e91fc',
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#333',
+    textTransform: 'capitalize',
+    fontWeight: '500',
+  },
+  tagTextSelected: {
+    color: '#fff',
   },
   thoughtCard: {
     backgroundColor: '#f2f2f2',
@@ -136,25 +205,10 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 4,
   },
-  tagFilterContainer: {
-    flexDirection: 'row',
-    marginBottom: 15,
-  },
-  tagButton: {
-    backgroundColor: '#eee',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  tagSelected: {
-    backgroundColor: '#4e91fc',
-  },
-  tagText: {
-    color: '#333',
-    textTransform: 'capitalize',
-  },
-  tagTextSelected: {
-    color: '#fff',
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 40,
+    fontSize: 16,
+    color: '#999',
   },
 });
