@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { loadThoughts } from '../utils/storage';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { loadThoughts, removeThought } from '../utils/storage';
 
 type Thought = {
   id: number;
@@ -10,18 +17,37 @@ type Thought = {
 export default function InboxScreen() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
 
-  useEffect(() => {
-    const fetchThoughts = async () => {
-      const saved = await loadThoughts();
-      setThoughts(saved);
-    };
+  const fetchThoughts = async () => {
+    const saved = await loadThoughts();
+    setThoughts(saved);
+  };
 
+  useEffect(() => {
     fetchThoughts();
   }, []);
 
+  const handleDelete = async (id: number) => {
+    await removeThought(id);
+    fetchThoughts(); // Refresh the list
+  };
+
+  const confirmDelete = (id: number) => {
+    Alert.alert(
+      'Delete Thought',
+      'Are you sure you want to delete this thought?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDelete(id) },
+      ]
+    );
+  };
+
   const renderItem = ({ item }: { item: Thought }) => (
     <View style={styles.thoughtCard}>
-      <Text>{item.content}</Text>
+      <Text style={styles.thoughtText}>{item.content}</Text>
+      <TouchableOpacity onPress={() => confirmDelete(item.id)}>
+        <Text style={styles.deleteText}>Delete</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -55,5 +81,15 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
+    position: 'relative',
+  },
+  thoughtText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  deleteText: {
+    color: 'red',
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
 });

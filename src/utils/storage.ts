@@ -22,3 +22,15 @@ export async function loadThoughts() {
     return [];
   }
 }
+
+
+export async function removeThought(id: number) {
+  try {
+    const existing = await AsyncStorage.getItem(STORAGE_KEY);
+    const thoughts = existing ? JSON.parse(existing) : [];
+    const filtered = thoughts.filter((t: any) => t.id !== id);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch (error) {
+    console.error('Error deleting thought:', error);
+  }
+}
