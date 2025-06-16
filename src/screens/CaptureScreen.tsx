@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,14 +19,18 @@ type CaptureScreenNavigationProp = NativeStackNavigationProp<
   'Capture'
 >;
 
+const TAGS = ['idea', 'task', 'worry', 'note', 'random'];
+
 export default function CaptureScreen() {
   const [thought, setThought] = useState('');
+  const [selectedTag, setSelectedTag] = useState('idea');
   const navigation = useNavigation<CaptureScreenNavigationProp>();
 
   const handleSave = async () => {
     if (!thought.trim()) return;
-    await saveThought(thought);
+    await saveThought(thought, selectedTag);
     setThought('');
+    setSelectedTag('idea');
   };
 
   return (
@@ -42,6 +47,29 @@ export default function CaptureScreen() {
         onChangeText={setThought}
         multiline
       />
+
+      <Text style={styles.subheading}>Select Tag:</Text>
+      <View style={styles.tagContainer}>
+        {TAGS.map((tag) => (
+          <TouchableOpacity
+            key={tag}
+            style={[
+              styles.tagButton,
+              selectedTag === tag && styles.tagSelected,
+            ]}
+            onPress={() => setSelectedTag(tag)}
+          >
+            <Text
+              style={[
+                styles.tagText,
+                selectedTag === tag && styles.tagTextSelected,
+              ]}
+            >
+              {tag}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <View style={styles.buttonContainer}>
         <Button title="Save Thought" onPress={handleSave} />
@@ -74,6 +102,32 @@ const styles = StyleSheet.create({
     minHeight: 100,
     marginBottom: 20,
     backgroundColor: '#fff',
+  },
+  subheading: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  tagButton: {
+    backgroundColor: '#eee',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    margin: 4,
+  },
+  tagSelected: {
+    backgroundColor: '#4e91fc',
+  },
+  tagText: {
+    color: '#333',
+  },
+  tagTextSelected: {
+    color: '#fff',
   },
   buttonContainer: {
     marginVertical: 5,

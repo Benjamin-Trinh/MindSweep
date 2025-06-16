@@ -2,16 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'MINDSWEEP_THOUGHTS';
 
-export async function saveThought(thought: string) {
+export async function saveThought(thought: string, tag: string) {
   try {
     const existing = await AsyncStorage.getItem(STORAGE_KEY);
     const thoughts = existing ? JSON.parse(existing) : [];
     const newThought = {
       id: Date.now(),
       content: thought,
+      tag,
       createdAt: new Date().toISOString(),
     };
-    thoughts.unshift(newThought); // newest first
+    thoughts.unshift(newThought);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
   } catch (error) {
     console.error('Error saving thought:', error);
