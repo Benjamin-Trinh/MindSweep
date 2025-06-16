@@ -1,9 +1,26 @@
-import { saveThought } from '../utils/storage';
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { saveThought } from '../utils/storage';
+import { RootStackParamList } from '../navigation/types';
+
+type CaptureScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'Capture'
+>;
 
 export default function CaptureScreen() {
   const [thought, setThought] = useState('');
+  const navigation = useNavigation<CaptureScreenNavigationProp>();
 
   const handleSave = async () => {
     if (!thought.trim()) return;
@@ -11,10 +28,13 @@ export default function CaptureScreen() {
     setThought('');
   };
 
-
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <Text style={styles.title}>MindSweep</Text>
+
       <TextInput
         style={styles.input}
         placeholder="What's on your mind?"
@@ -22,8 +42,15 @@ export default function CaptureScreen() {
         onChangeText={setThought}
         multiline
       />
-      <Button title="Save Thought" onPress={handleSave} />
-    </View>
+
+      <View style={styles.buttonContainer}>
+        <Button title="Save Thought" onPress={handleSave} />
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <Button title="Go to Inbox" onPress={() => navigation.navigate('Inbox')} />
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -46,5 +73,9 @@ const styles = StyleSheet.create({
     padding: 15,
     minHeight: 100,
     marginBottom: 20,
+    backgroundColor: '#fff',
+  },
+  buttonContainer: {
+    marginVertical: 5,
   },
 });
