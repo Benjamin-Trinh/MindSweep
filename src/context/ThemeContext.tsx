@@ -1,10 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Appearance } from 'react-native';
-import { lightTheme, darkTheme } from '../theme/theme';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Appearance, ColorSchemeName, View, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Theme = 'light' | 'dark' | 'system';
 
-type ThemeColors = typeof lightTheme;
+type ThemeColors = {
+  background: string;
+  text: string;
+  card: string;
+  tag: string;
+  tagText: string;
+  highlight: string;
+  border: string;
+  placeholder: string;
+  danger: string;
+};
 
 type ThemeContextType = {
   theme: Theme;
@@ -17,30 +27,86 @@ const ThemeContext = createContext<ThemeContextType>({
   theme: 'system',
   current: 'light',
   setThemeMode: () => {},
-  themeColors: lightTheme,
+  themeColors: {
+    background: '#fff',
+    text: '#000',
+    card: '#f2f2f2',
+    tag: '#e6e6e6',
+    tagText: '#333',
+    highlight: '#4e91fc',
+    border: '#ccc',
+    placeholder: '#888',
+    danger: '#ff4d4d',
+  },
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const getSystemTheme = () => Appearance.getColorScheme() as 'light' | 'dark';
   const [theme, setTheme] = useState<Theme>('system');
-  const [color, setColor] = useState<'light' | 'dark'>(getSystemTheme() || 'light');
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const update = () => {
-      const system = getSystemTheme() || 'light';
-      setColor(theme === 'system' ? system : theme);
+    const init = async () => {
+      const storedTheme = await AsyncStorage.getItem('@theme');
+      if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
+        setTheme(storedTheme);
+      }
+
+      const sysTheme = Appearance.getColorScheme() || 'light';
+      setSystemTheme(sysTheme);
+
+      setIsReady(true);
     };
-    update();
-    const sub = Appearance.addChangeListener(update);
+
+    init();
+
+    const sub = Appearance.addChangeListener(({ colorScheme }) => {
+      setSystemTheme(colorScheme === 'dark' ? 'dark' : 'light');
+    });
+
     return () => sub.remove();
-  }, [theme]);
+  }, []);
 
-  const setThemeMode = (mode: Theme) => setTheme(mode);
+  const current = React.useMemo(() => {
+  return theme === 'system' ? systemTheme : theme;
+}, [theme, systemTheme]);
 
-  const themeColors = color === 'dark' ? darkTheme : lightTheme;
+  const themeColors: ThemeColors = {
+    background: current === 'dark' ? '#121212' : '#fff',
+    text: current === 'dark' ? '#fff' : '#000',
+    card: current === 'dark' ? '#1e1e1e' : '#f2f2f2',
+    tag: current === 'dark' ? '#333' : '#e6e6e6',
+    tagText: current === 'dark' ? '#fff' : '#333',
+    highlight: '#4e91fc',
+    border: current === 'dark' ? '#444' : '#ccc',
+    placeholder: current === 'dark' ? '#aaa' : '#888',
+    danger: '#ff4d4d',
+  };
+
+  const setThemeMode = async (mode: Theme) => {
+    setTheme(mode);
+    await AsyncStorage.setItem('@theme', mode);
+  };
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+
 
   return (
-    <ThemeContext.Provider value={{ theme, current: color, setThemeMode, themeColors }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        current,
+        setThemeMode,
+        themeColors,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

@@ -13,16 +13,18 @@ const Stack = createNativeStackNavigator();
 function AppStack() {
   const { current, themeColors } = useTheme();
   const isDark = current === 'dark';
+  const navTheme = React.useMemo(() => (isDark ? DarkTheme : DefaultTheme), [isDark]);
 
   return (
-    <NavigationContainer theme={isDark ? DarkTheme : DefaultTheme}>
+
+    <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={({ navigation }) => ({
           headerStyle: {
-            backgroundColor: themeColors.background,
+            backgroundColor: navTheme.colors.card,
           },
           headerTitleStyle: {
-            color: themeColors.text,
+            color: navTheme.colors.text,
           },
           headerRight: () => (
             <TouchableOpacity
