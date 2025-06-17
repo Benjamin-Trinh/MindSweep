@@ -1,57 +1,69 @@
 import React from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-const modes = ['light', 'dark', 'system'] as const;
-
 export default function SettingsScreen() {
-  const { theme, setThemeMode, current } = useTheme();
+  const { theme, current, setThemeMode, themeColors, fontScale } = useTheme();
+
+  const setMode = (mode: 'light' | 'dark' | 'system') => {
+    setThemeMode(mode);
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: current === 'dark' ? '#121212' : '#fff' }]}>
-      <Text style={[styles.title, { color: current === 'dark' ? '#fff' : '#000' }]}>Theme Settings</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <Text style={[styles.heading, { color: themeColors.text, fontSize: 24 * fontScale }]}>Settings</Text>
 
-      {modes.map((mode) => (
-        <TouchableOpacity
-          key={mode}
-          style={[
-            styles.option,
-            {
-              backgroundColor:
-                theme === mode ? '#4e91fc' : current === 'dark' ? '#333' : '#eee',
-            },
-          ]}
-          onPress={() => setThemeMode(mode)}
-        >
-          <Text
-            style={{
-              color: theme === mode ? '#fff' : current === 'dark' ? '#fff' : '#000',
-              fontWeight: theme === mode ? 'bold' : 'normal',
-            }}
+      <Text style={[styles.label, { color: themeColors.text, fontSize: 16 * fontScale }]}>Select Theme:</Text>
+
+      <View style={styles.optionsContainer}>
+        {['light', 'dark', 'system'].map((mode) => (
+          <TouchableOpacity
+            key={mode}
+            style={[
+              styles.optionButton,
+              {
+                backgroundColor: theme === mode ? themeColors.highlight : themeColors.card,
+              },
+            ]}
+            onPress={() => setMode(mode as any)}
           >
-            {mode === 'system' ? 'Follow System Theme' : `Use ${mode} mode`}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+            <Text
+              style={{
+                color: theme === mode ? '#fff' : themeColors.text,
+                fontSize: 16 * fontScale,
+              }}
+            >
+              {mode === 'system' ? 'Follow System Theme' : `${mode.charAt(0).toUpperCase()}${mode.slice(1)} Mode`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
-  title: {
-    fontSize: 24,
+  heading: {
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 20,
   },
-  option: {
-    padding: 16,
-    borderRadius: 10,
+  label: {
+    marginBottom: 10,
+    textAlign: 'left',
+  },
+  optionsContainer: {
+    gap: 12,
+  },
+  optionButton: {
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 10,
   },
 });

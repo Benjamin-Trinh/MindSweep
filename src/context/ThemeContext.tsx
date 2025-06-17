@@ -1,5 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Appearance, ColorSchemeName, View, ActivityIndicator } from 'react-native';
+declare module 'react-native' {
+  interface AccessibilityInfoStatic {
+    getFontScale?: () => Promise<number>;
+  }
+}
+
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { Appearance, View, ActivityIndicator, AccessibilityInfo } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -21,6 +27,7 @@ type ThemeContextType = {
   current: 'light' | 'dark';
   setThemeMode: (mode: Theme) => void;
   themeColors: ThemeColors;
+  fontScale: number;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -38,24 +45,35 @@ const ThemeContext = createContext<ThemeContextType>({
     placeholder: '#888',
     danger: '#ff4d4d',
   },
+  fontScale: 1,
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>('system');
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
   const [isReady, setIsReady] = useState(false);
+  const [fontScale, setFontScale] = useState(1);
 
   useEffect(() => {
     const init = async () => {
-      const storedTheme = await AsyncStorage.getItem('@theme');
-      if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
-        setTheme(storedTheme);
+      try {
+        const storedTheme = await AsyncStorage.getItem('@theme');
+        if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
+          setTheme(storedTheme);
+        }
+
+        const initialSystem = Appearance.getColorScheme() || 'light';
+        setSystemTheme(initialSystem);
+
+        const scale = AccessibilityInfo.getFontScale
+          ? await AccessibilityInfo.getFontScale()
+          : 1;
+        setFontScale(scale);
+      } catch (error) {
+        console.warn('ThemeContext init error:', error);
+      } finally {
+        setIsReady(true);
       }
-
-      const sysTheme = Appearance.getColorScheme() || 'light';
-      setSystemTheme(sysTheme);
-
-      setIsReady(true);
     };
 
     init();
@@ -67,11 +85,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => sub.remove();
   }, []);
 
-  const current = React.useMemo(() => {
-  return theme === 'system' ? systemTheme : theme;
-}, [theme, systemTheme]);
+  const current = useMemo(() => (theme === 'system' ? systemTheme : theme), [theme, systemTheme]);
 
-  const themeColors: ThemeColors = {
+  const themeColors = useMemo<ThemeColors>(() => ({
     background: current === 'dark' ? '#121212' : '#fff',
     text: current === 'dark' ? '#fff' : '#000',
     card: current === 'dark' ? '#1e1e1e' : '#f2f2f2',
@@ -81,7 +97,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     border: current === 'dark' ? '#444' : '#ccc',
     placeholder: current === 'dark' ? '#aaa' : '#888',
     danger: '#ff4d4d',
-  };
+  }), [current]);
 
   const setThemeMode = async (mode: Theme) => {
     setTheme(mode);
@@ -96,17 +112,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   }
 
-
-
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        current,
-        setThemeMode,
-        themeColors,
-      }}
-    >
+    <ThemeContext.Provider value={{ theme, current, setThemeMode, themeColors, fontScale }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -15,18 +15,18 @@ import { saveThought } from '../utils/storage';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../context/ThemeContext';
 
-const TAGS = ['idea', 'task', 'worry', 'note', 'random'];
-
 type CaptureScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'Capture'
 >;
 
+const TAGS = ['idea', 'task', 'worry', 'note', 'random'];
+
 export default function CaptureScreen() {
   const [thought, setThought] = useState('');
   const [selectedTag, setSelectedTag] = useState('idea');
   const navigation = useNavigation<CaptureScreenNavigationProp>();
-  const { themeColors } = useTheme();
+  const { themeColors, fontScale } = useTheme();
 
   const handleSave = async () => {
     if (!thought.trim()) return;
@@ -40,10 +40,20 @@ export default function CaptureScreen() {
       style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={[styles.title, { color: themeColors.text }]}>MindSweep</Text>
+      <Text style={[styles.title, { color: themeColors.text, fontSize: 26 * fontScale }]}>
+        MindSweep
+      </Text>
 
       <TextInput
-        style={[styles.input, { backgroundColor: themeColors.card, color: themeColors.text, borderColor: themeColors.border }]}
+        style={[
+          styles.input,
+          {
+            backgroundColor: themeColors.card,
+            color: themeColors.text,
+            borderColor: themeColors.border,
+            fontSize: 16 * fontScale,
+          },
+        ]}
         placeholder="What's on your mind?"
         placeholderTextColor={themeColors.placeholder}
         value={thought}
@@ -51,14 +61,17 @@ export default function CaptureScreen() {
         multiline
       />
 
-      <Text style={[styles.subheading, { color: themeColors.text }]}>Select Tag:</Text>
+      <Text style={[styles.subheading, { color: themeColors.text, fontSize: 16 * fontScale }]}>
+        Select Tag:
+      </Text>
+
       <View style={styles.tagContainer}>
         {TAGS.map((tag) => (
           <TouchableOpacity
             key={tag}
             style={[
               styles.tagButton,
-              { backgroundColor: selectedTag === tag ? '#4e91fc' : themeColors.card },
+              { backgroundColor: selectedTag === tag ? themeColors.highlight : themeColors.tag },
             ]}
             onPress={() => setSelectedTag(tag)}
           >
@@ -66,7 +79,8 @@ export default function CaptureScreen() {
               style={[
                 styles.tagText,
                 {
-                  color: selectedTag === tag ? '#fff' : themeColors.text,
+                  color: selectedTag === tag ? '#fff' : themeColors.tagText,
+                  fontSize: 14 * fontScale,
                 },
               ]}
             >
@@ -80,9 +94,6 @@ export default function CaptureScreen() {
         <Button title="Save Thought" onPress={handleSave} />
       </View>
 
-      <View style={styles.buttonContainer}>
-        <Button title="Go to Inbox" onPress={() => navigation.navigate('Inbox')} />
-      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -94,7 +105,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 20,
@@ -107,7 +117,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   subheading: {
-    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
   },
@@ -122,9 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     margin: 4,
   },
-  tagText: {
-    fontSize: 14,
-  },
+  tagText: {},
   buttonContainer: {
     marginVertical: 5,
   },
