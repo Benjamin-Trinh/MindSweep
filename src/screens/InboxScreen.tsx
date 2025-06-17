@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useLayoutEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,22 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { loadThoughts, removeThought } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type Thought = {
   id: number;
@@ -47,20 +55,24 @@ export default function InboxScreen() {
         </TouchableOpacity>
       ),
     });
-  }, [navigation, themeColors]);
+  }, [navigation, isDark, themeColors]);
 
   const fetchThoughts = async () => {
     const saved = await loadThoughts();
     setThoughts(saved);
   };
 
-  useEffect(() => {
-    fetchThoughts();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchThoughts();
+    }, [])
+  );
 
   const handleDelete = async (id: number) => {
     await removeThought(id);
-    fetchThoughts();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setThoughts((prev) => prev.filter((t) => t.id !== id));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   };
 
   const confirmDelete = (id: number) => {
@@ -75,26 +87,27 @@ export default function InboxScreen() {
 
     const textDump = thoughts
       .map(
-        (t) =>
-          `[${t.tag.toUpperCase()}] ${new Date(t.createdAt).toLocaleString()}
-${t.content}\n`
+        (t) => `[${t.tag.toUpperCase()}] ${new Date(t.createdAt).toLocaleString()}\n${t.content}\n`
       )
       .join('\n');
 
     await Clipboard.setStringAsync(textDump);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Copied!', 'Thoughts exported to clipboard.');
   };
 
   const filteredThoughts =
-    selectedTag === 'all'
-      ? thoughts
-      : thoughts.filter((t) => t.tag === selectedTag);
+    selectedTag === 'all' ? thoughts : thoughts.filter((t) => t.tag === selectedTag);
 
   const renderItem = ({ item }: { item: Thought }) => (
     <View style={[styles.thoughtCard, { backgroundColor: themeColors.card }]}>
-      <Text style={[styles.tagLabel, { color: themeColors.text, fontSize: 12 * fontScale }]}>{item.tag.toUpperCase()}</Text>
-      <Text style={[styles.thoughtText, { color: themeColors.text, fontSize: 16 * fontScale }]}>{item.content}</Text>
-      <Text style={[styles.timestamp, { color: themeColors.text, fontSize: 12 * fontScale }]}>
+      <Text style={[styles.tagLabel, { color: themeColors.text, fontSize: 12 * fontScale }]}> 
+        {item.tag.toUpperCase()}
+      </Text>
+      <Text style={[styles.thoughtText, { color: themeColors.text, fontSize: 16 * fontScale }]}> 
+        {item.content}
+      </Text>
+      <Text style={[styles.timestamp, { color: themeColors.text, fontSize: 12 * fontScale }]}> 
         {new Date(item.createdAt).toLocaleString()}
       </Text>
       <TouchableOpacity onPress={() => confirmDelete(item.id)}>
@@ -105,50 +118,55 @@ ${t.content}\n`
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <Text style={[styles.title, { color: themeColors.text, fontSize: 26 * fontScale }]}>Inbox</Text>
-
-      <View>
-        <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
-          <Text style={[styles.exportText, { fontSize: 14 * fontScale }]}>Export to Clipboard</Text>
-        </TouchableOpacity>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tagFilterContainer}
-        >
-          {TAGS.map((tag) => {
-            const isSelected = selectedTag === tag;
-            return (
-              <TouchableOpacity
-                key={tag}
-                style={[styles.tagButton, { backgroundColor: isSelected ? themeColors.highlight : themeColors.tag }]}
-                onPress={() => setSelectedTag(tag)}
-              >
-                <Text
-                  style={{
-                    color: isSelected ? '#fff' : themeColors.tagText,
-                    fontSize: 14 * fontScale,
-                    fontWeight: '500',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {tag}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+     
 
       <FlatList
         data={filteredThoughts}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}
+        extraData={thoughts}
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: themeColors.text, fontSize: 16 * fontScale }]}>No thoughts for this tag.</Text>
         }
+        ListHeaderComponent={
+          <>
+            <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
+              <Text style={styles.exportText}>Export to Clipboard</Text>
+            </TouchableOpacity>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tagFilterContainer}
+            >
+              {TAGS.map((tag) => {
+                const isSelected = selectedTag === tag;
+                return (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[
+                      styles.tagButton,
+                      {
+                        backgroundColor: isSelected ? themeColors.highlight : themeColors.tag,
+                      },
+                    ]}
+                    onPress={() => setSelectedTag(tag)}
+                  >
+                    <Text
+                      style={{
+                        color: isSelected ? '#fff' : themeColors.tagText,
+                        fontSize: 14 * fontScale,
+                      }}
+                    >
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </>
+        }
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
     </View>
   );
@@ -158,12 +176,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    paddingTop: 60,
   },
   title: {
     fontWeight: 'bold',
-    textAlign: 'center',
     marginBottom: 10,
+    textAlign: 'center',
+    paddingTop: 60,
   },
   exportButton: {
     marginBottom: 10,
@@ -182,15 +200,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 10,
     height: 48,
+    marginTop: 10,
   },
   tagButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 20,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 70,
+  },
+  tagText: {
+    textTransform: 'capitalize',
+    fontWeight: '500',
   },
   thoughtCard: {
     padding: 15,
@@ -214,6 +237,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 40,
   },
 });

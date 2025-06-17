@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { saveThought } from '../utils/storage';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../context/ThemeContext';
+import * as Haptics from 'expo-haptics';
 
 type CaptureScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -31,6 +32,7 @@ export default function CaptureScreen() {
   const handleSave = async () => {
     if (!thought.trim()) return;
     await saveThought(thought, selectedTag);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setThought('');
     setSelectedTag('idea');
   };

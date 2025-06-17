@@ -2,12 +2,15 @@ import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 export default function SettingsScreen() {
   const { theme, current, setThemeMode, themeColors, fontScale } = useTheme();
 
   const setMode = (mode: 'light' | 'dark' | 'system') => {
     setThemeMode(mode);
+    Haptics.selectionAsync();
   };
 
   return (
@@ -46,8 +49,8 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    padding: 20,
+    justifyContent: 'flex-start',
   },
   heading: {
     fontWeight: 'bold',
